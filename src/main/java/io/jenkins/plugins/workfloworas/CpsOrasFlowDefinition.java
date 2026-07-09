@@ -39,8 +39,10 @@ import land.oras.ArtifactType;
 import land.oras.ContainerRef;
 import land.oras.Layer;
 import land.oras.Manifest;
+import land.oras.OCI;
 import land.oras.Registry;
 import land.oras.exception.OrasException;
+import land.oras.policy.ContainersPolicy;
 import land.oras.utils.Const;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowExecution;
@@ -185,7 +187,7 @@ public class CpsOrasFlowDefinition extends FlowDefinition {
                 if (!resolved.startsWith(remote)) {
                     throw new SecurityException("Only script path inside archive can be selected: " + scriptPathFile);
                 }
-                registry.pullArtifact(containerRef, remote, true);
+                registry.pullArtifact(containerRef, remote, OCI.PullOptions.overwrite());
                 if (!Files.exists(resolved)) {
                     throw new IOException("Script path does not exist in the container: " + scriptPathFile);
                 }
@@ -220,7 +222,8 @@ public class CpsOrasFlowDefinition extends FlowDefinition {
     }
 
     private static Registry buildRegistry(Item item, String credentialsId, boolean insecure) {
-        Registry.Builder builder = Registry.builder().defaults();
+        Registry.Builder builder =
+                Registry.builder().withPolicy(ContainersPolicy.newPolicy()).defaults();
         if (insecure) {
             builder = builder.insecure();
         }
