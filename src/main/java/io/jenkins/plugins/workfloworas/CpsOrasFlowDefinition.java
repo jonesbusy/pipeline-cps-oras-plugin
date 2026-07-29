@@ -57,9 +57,16 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @PersistIn(JOB)
 public class CpsOrasFlowDefinition extends FlowDefinition {
+
+    /**
+     * Logger
+     */
+    private static final Logger LOG = LoggerFactory.getLogger(CpsOrasFlowDefinition.class);
 
     public static final ArtifactType ARTIFACT_TYPE_SCRIPT =
             ArtifactType.from("application/vnd.jenkins.pipeline.manifest.v1+json");
@@ -222,19 +229,20 @@ public class CpsOrasFlowDefinition extends FlowDefinition {
     }
 
     private static Registry buildRegistry(Item item, String credentialsId, boolean insecure) {
-        Registry.Builder builder =
-                Registry.builder().withPolicy(ContainersPolicy.newPolicy()).defaults();
+        Registry.Builder builder = Registry.builder().withPolicy(ContainersPolicy.newPolicy());
         if (insecure) {
             builder = builder.insecure();
         }
         if (credentialsId == null || credentialsId.isEmpty()) {
-            return builder.build();
+            LOG.debug("No credentials found for the container reference, will use default authentication");
+            return builder.defaults().build();
         }
         UsernamePasswordCredentials credentials = getCredentials(item, credentialsId);
         if (credentials == null) {
             throw new IllegalArgumentException("No credentials found with ID: " + credentialsId);
         }
 
+        LOG.debug("Credentials found: {}, creating registry for username {}", credentials, credentials.getUsername());
         return builder.defaults(
                         credentials.getUsername(), credentials.getPassword().getPlainText())
                 .build();
